@@ -12,4 +12,19 @@ LEFT JOIN master_data.std_channel tl ON tt.`店铺名称` = tl.`店铺名称`
 GROUP BY
 	de_month,
 	channel_type;
-
+	
+	
+-- 创建1药网浏览数据视图
+DROP VIEW
+IF EXISTS monitor_firstdrug_check;
+CREATE VIEW monitor_firstdrug_check AS
+SELECT
+ DATE_FORMAT(tt.date_id,"%Y-%m-%d") AS firstdrug_date,
+ SUM(tt.pv) AS pv_sum,
+ SUM(tt.uv) AS uv_sum
+FROM
+ master_data.monitor_firstdrug_data tt
+GROUP BY
+firstdrug_date
+ORDER BY
+firstdrug_date DESC;
