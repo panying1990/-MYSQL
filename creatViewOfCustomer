@@ -1,3 +1,15 @@
 -- 创建用户查看当前销售额的视图
-
+DROP VIEW
+IF EXISTS e_business_sale_check;
+CREATE VIEW e_business_sale_check AS
+SELECT
+	DATE_FORMAT(tt.发货日期,"%Y-%m") AS de_month,
+	tl.渠道类型 AS channel_type,
+  ROUND(SUM(tt.产品销售总价sum),2) AS sale_total
+FROM
+	master_data.mas_trans_data tt
+LEFT JOIN master_data.std_channel tl ON tt.`店铺名称` = tl.`店铺名称`
+GROUP BY
+	de_month,
+	channel_type;
 
