@@ -28,3 +28,18 @@ GROUP BY
 firstdrug_date
 ORDER BY
 firstdrug_date DESC;
+
+-- 创建天猫监测数据视图
+DROP VIEW
+IF EXISTS monitor_tmall_check;
+CREATE VIEW monitor_tmall_check AS
+SELECT
+ DATE_FORMAT(tt.日期,"%Y-%m-%d") AS tmall_date,
+ COUNT(DISTINCT tt.店铺名称) AS shop_counts,
+ SUM(tt.支付子订单数) AS uv_sum
+FROM
+ master_data.monitor_tmall_data tt
+GROUP BY
+tmall_date
+ORDER BY
+tmall_date DESC;
