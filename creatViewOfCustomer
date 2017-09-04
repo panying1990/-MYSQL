@@ -43,3 +43,25 @@ GROUP BY
 tmall_date
 ORDER BY
 tmall_date DESC;
+
+-- 创建天猫品牌展区费用-品牌流量包数据视图
+DROP VIEW
+IF EXISTS mkt_pzbrand_check;
+CREATE VIEW mkt_pzbrand_check AS
+SELECT
+ tt.`日期` AS pzbrand_date,
+ tt.`所属计划` AS pzbrand_plan,
+ tt.`所属单元` AS pzbrand_from,
+ COUNT(DISTINCT tt.`流量包名称`) AS pz_brand_counts,
+ SUM(tt.`展现量`) AS pzbrand_amount
+FROM
+ master_data.mkt_pzbrand_data tt
+GROUP BY
+ pzbrand_date,
+ pzbrand_plan,
+ pzbrand_from
+ORDER BY
+ pzbrand_date DESC,
+ pzbrand_plan,
+ pzbrand_from;
+
