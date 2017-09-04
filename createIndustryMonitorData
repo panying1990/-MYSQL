@@ -1,0 +1,34 @@
+DROP VIEW
+IF EXISTS monitor_industry_check;
+CREATE VIEW monitor_industry_check AS
+SELECT
+ tt.industry_date,
+ tt.industry_channel,
+ tt.industry_brand,
+ tt.brand_sale,
+ tl.total_sale,
+ tl.industrytop20_ratio
+FROM
+(SELECT
+ CONCAT(LEFT(tt.`年月`,4),"-",RIGHT(tt.`年月`,2),"-01") AS industry_date,
+ tt.渠道 AS industry_channel,
+ tt.`品牌名称` AS industry_brand,
+ tt.`销售额` AS brand_sale
+FROM
+ master_data.monitor_industry_data tt)tt
+LEFT JOIN
+(SELECT
+ CONCAT(LEFT(tt.`年月`,4),"-",RIGHT(tt.`年月`,2),"-01") AS industry_date,
+ tt.渠道 AS industry_channel,
+ ROUND(SUM(tt.`销售额`),2) AS total_sale,
+ ROUND(SUM(tt.销售额行业占比),2) AS industrytop20_ratio
+FROM
+ master_data.monitor_industry_data tt
+GROUP BY
+industry_date,
+industry_channel)tl
+ON CONCAT(tt.industry_date,tt.industry_channel)=CONCAT(tl.industry_date,tl.industry_channel)
+ORDER BY
+industry_date DESC,
+industry_channel,
+brand_sale ASC;
