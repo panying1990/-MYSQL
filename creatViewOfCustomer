@@ -65,3 +65,48 @@ ORDER BY
  pzbrand_plan,
  pzbrand_from;
 
+-- 选取规范姓名的用户数据信息，创建采集用户性别分类器基础数据
+START TRANSACTION;
+USE tag_explore;
+DROP VIEW
+IF EXISTS sex_tag_Classifier;
+CREATE VIEW sex_tag_Classifier AS
+SELECT
+ tt.sys_customer_id,
+ tt.plat_from_type,
+ tt.customer_name,
+ tt.sex
+FROM
+crm_kd.kd_customer tt
+WHERE
+ tt.sex IN(0,1)
+AND
+ LENGTH(tt.customer_name)<11
+AND
+ tt.sys_customer_id NOT IN
+(SELECT
+ tt.sys_customer_id
+FROM
+ crm_kd.kd_customer tt
+WHERE
+ tt.sex IN(0,1)
+AND
+ (tt.customer_name REGEXP'[:alnum:]' -- 排除名称中有字母、数字的用户姓名
+  OR
+  tt.customer_name REGEXP'[:digit:]' 
+  OR
+  tt.customer_name REGEXP'[:space:]|/' -- 排除名称中包括任意空白字符
+  OR
+  tt.customer_name REGEXP '-' -- 排除名称扩折号的用户
+  OR
+  tt.customer_name REGEXP '女士|先生|小姐|男士|本人|女生|阿姨|太太|无人' -- 排除呼叫中心人工标记
+  OR
+  tt.customer_name REGEXP '药店|官网|商桥' -- 排除呼叫中心人工标记
+  OR
+  LENGTH(tt.customer_name)<4 -- 排除无姓名字段内容
+  OR
+  LENGTH(tt.customer_name)>10));
+
+
+
+
