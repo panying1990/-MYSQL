@@ -32,3 +32,23 @@ FROM
 	master_data.mas_fristdrug_data0915 tt
 ORDER BY
 	order_date DESC;
+
+-- 2017-09-15
+USE tag_explore;
+
+DROP TABLE
+IF EXISTS fristdrug_check_data;
+
+SET @rownum = 0;
+
+CREATE TABLE fristdrug_check_data AS SELECT
+	tt.`收货人电话` AS user_mobile,
+	@rownum := @rownum + 1 AS seriel_number,
+	COUNT(DISTINCT tt.订单ID) AS order_count,
+	ROUND(sum(tt.实际销售额),1) AS user_amount
+FROM
+	master_data.mas_fristdrug_data0915 tt
+GROUP BY
+	user_mobile
+ORDER BY
+	user_mobile DESC;
