@@ -1,0 +1,34 @@
+
+SELECT
+	DATE_FORMAT(
+		tt.`下单时间`,
+		"%Y-%m-%d"
+	) AS order_date,
+	COUNT(DISTINCT tt.`DO单号`) AS order_num,
+	COUNT(DISTINCT tt.`收货人电话`) AS user_num
+FROM
+	master_data.mas_fristdrug_data0915 tt
+GROUP BY
+	order_date
+ORDER BY
+	order_date DESC;
+
+
+USE tag_explore;
+DROP TABLE
+IF EXISTS fristdrug_check_data;
+SET @rownum=0;
+CREATE TABLE fristdrug_check_data AS
+SELECT
+  @rownum:= @rownum+1 AS seriel_number,
+	DATE_FORMAT(
+		tt.`下单时间`,
+		"%Y-%m-%d"
+	) AS order_date,
+	tt.`DO单号` AS order_id,
+	tt.`收货人电话` AS user_mobile,
+  tt.实际销售额 AS order_price
+FROM
+	master_data.mas_fristdrug_data0915 tt
+ORDER BY
+	order_date DESC;
