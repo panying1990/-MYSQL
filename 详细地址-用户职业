@@ -1,0 +1,110 @@
+-- author: panying
+-- Last edit time: 2017-09-28
+
+-- 数据监控
+#=============================================================================================
+-- 用户职业标签-标签属性值结构情况
+USE tag_text;
+DROP TABLE
+IF EXISTS user_occupation_scann;
+CREATE TABLE user_occupation_scann AS
+SELECT
+ tt.tag_attributes,
+ sum(tt.customer_id_counts) AS attributes_counts,
+ ROUND(100*sum(tt.customer_id_counts)/(SELECT COUNT(*) FROM crm_kd.kd_customer tt WHERE YEAR(tt.develop_time)>2015),2) AS attributes_ratio
+FROM
+(SELECT
+ tt.develop_year,
+ tt.develop_month,
+ tt.user_tag,
+ (CASE WHEN LENGTH(tag_attributes)<1 THEN '无' 
+       WHEN ISNULL(tag_attributes)THEN '无' ELSE tag_attributes END) AS tag_attributes,
+ tt.customer_id_counts
+FROM
+(SELECT
+  YEAR(tl.develop_time) AS develop_year,
+  MONTH(tl.develop_time) AS develop_month,
+  CONCAT("ueInfo3") AS user_tag,
+  tt.ueInfo3 AS tag_attributes,
+	COUNT(DISTINCT tt.sys_customer_id) AS customer_id_counts
+FROM
+	crm_kd.kd_customer_property_value tt
+LEFT JOIN crm_kd.kd_customer tl
+ON tt.sys_customer_id=tl.sys_customer_id
+GROUP BY
+ develop_year,
+ develop_month,
+ user_tag,
+ tag_attributes
+ORDER BY
+ develop_year,
+ develop_month,
+ user_tag,
+ tag_attributes)tt
+WHERE
+ tt.develop_year>2015) tt
+GROUP BY
+ tt.tag_attributes
+ORDER BY
+attributes_ratio;
+
+
+-- 数据初探
+#=============================================================================================
+-- 选取规范后的用户详细地址数据信息
+-- 标准地址的规范格式为 省 市 区  详细地址
+USE tag_explore;
+SET @rownum=0;
+DROP TABLE
+IF EXISTS address_jobtype_data;
+CREATE TABLE address_jobtype_data AS
+SELECT
+ @rownum:=@rownum+1 AS row_num,
+ TRIM(tt.address) AS address,
+ TRIM(tt.province) AS province,
+ TRIM(tt.city) AS city,
+ TRIM(tt.district) AS district,
+(CASE WHEN LEFT(tt.address,2)=LEFT(tt.province,2) THEN '标准' ELSE '不标准' END) AS tag_tips -- 标准地址
+FROM
+(select
+ tt.province,
+ tt.city,
+ tt.district,
+ tt.address
+from
+crm_kd.kd_customer tt
+where
+date_format(tt.first_pay_time,"%Y")>2015
+AND
+LENGTH(tt.province)>1
+AND
+LENGTH(tt.city)>1
+AND
+ LENGTH(tt.address)>1)tt
+ORDER BY
+ tag_tips,
+ province,
+ city)tt;
+
+# 选择不标准数据
+USE tag_explore;
+DROP TABLE
+IF EXISTS address_unnorm_data;
+CREATE TABLE address_unnorm_data AS
+SELECT
+ *
+FROM
+ tag_explore.address_jobtype_data tt
+WHERE
+ tt.tag_tips = '不标准'
+
+
+# 数据初探
+SELECT
+ tt.tag_tips,
+ COUNT(DISTINCT tt.address) AS tag_tips_count,
+ ROUND(100*COUNT(DISTINCT tt.address)/(SELECT COUNT(*) FROM tag_explore.address_jobtype_data),2) AS tag_tips_ratio
+FROM
+ tag_explore.address_jobtype_data tt
+GROUP BY
+ tt.tag_tips;
