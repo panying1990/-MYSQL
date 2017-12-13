@@ -1,0 +1,152 @@
+-- 电商产品组需要出具不同产品复购情况,每月出具一份报告即可
+-- 数据维度： 月度、季度、年度
+-- 取数周期：建议取数周期为截止日后5日10点
+-- 设置月份时间：
+SET @begin_month_day = "2017-11-01";
+SET @last_month_day = "2017-11-11";
+
+
+-- 产品复购分析
+USE tag_text;
+DROP TABLE
+IF EXISTS product_repurchase_analysis;
+CREATE TABLE product_repurchase_analysis AS
+SELECT
+ tt.sys_item_id,
+ tt.sys_customer_id,
+ tt.pay_time,
+ tt.title,
+ zz.pay_times AS 产品客户购买次数,
+ (CASE WHEN zz.pay_times>1 THEN '产品复购客户' ELSE NULL END) AS 产品客户,
+ yy.pay_times AS 店铺客户购买次数,
+ (CASE WHEN yy.pay_times>1 THEN '店铺复购客户' ELSE NULL END) AS 店铺客户
+FROM
+(SELECT
+ tt.sys_trade_id,
+ tt.sys_item_id,
+ tt.title,
+ zz.sys_customer_id,
+ zz.pay_time,
+ zz.payment
+FROM
+  crm_kd.kd_order tt
+LEFT JOIN
+  crm_kd.kd_trade zz
+ON tt.sys_trade_id = zz.sys_trade_id
+WHERE
+  DATE_FORMAT(zz.pay_time,"%Y-%m-%d") BETWEEN "2017-11-01" AND "2017-11-30"
+AND
+  tt.order_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+  tt.plat_from_id IN('585','586','587','588','590' ,'591','592','593','597','598')
+AND
+  zz.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+  zz.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%")
+AND
+  tt.sys_item_id IN(SELECT tag_text.items_product_exchange. FROM tag_text.items_product_exchange)
+)tt
+LEFT JOIN
+(SELECT
+tt.sys_item_id,
+tt.sys_customer_id,
+COUNT(DISTINCT tt.sys_trade_id) AS pay_times
+FROM
+(SELECT
+ tt.sys_trade_id,
+ tt.sys_item_id,
+ tt.title,
+ zz.sys_customer_id,
+ zz.pay_time,
+ zz.payment
+FROM
+  crm_kd.kd_order tt
+LEFT JOIN
+  crm_kd.kd_trade zz
+ON tt.sys_trade_id = zz.sys_trade_id
+WHERE
+  DATE_FORMAT(zz.pay_time,"%Y-%m-%d") BETWEEN "2017-01-01" AND DATE_FORMAT(NOW(),"%Y-%m-%d")
+AND
+  tt.order_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+  tt.plat_from_id IN('585','586','587','588','590' ,'591','592','593','597','598')
+AND
+  zz.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+  zz.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%")
+)tt
+GROUP BY
+ tt.sys_item_id,
+ tt.sys_customer_id)zz
+ON
+ CONCAT(tt.sys_item_id,tt.sys_customer_id)= CONCAT(zz.sys_item_id,zz.sys_customer_id)
+LEFT JOIN
+ (SELECT
+   yy.sys_customer_id,
+   yy.pay_times
+  FROM
+  crm_kd.kd_customer yy
+  WHERE
+   yy.first_pay_time IS NOT NULL)yy
+ON tt.sys_customer_id= yy.sys_customer_id;
+
+-- 产品复购分析报告
+USE tag_text;
+DROP TABLE
+IF EXISTS product_repurchase_report;
+CREATE TABLE product_repurchase_report AS
+SELECT
+ tt.产品名,
+ tt.购买人数,
+ tt.产品复购客户,
+ tt.产品新客户,
+ tt.店铺回购客户,
+ CONCAT(ROUND(100*tt.产品复购客户/tt.购买人数,1),"%") AS 产品复购率,
+ CONCAT(ROUND(100*tt.店铺回购客户/tt.购买人数,1),"%") AS 店铺回购率,
+ 0 AS 复购环比,
+ 0 AS 回购环比
+FROM
+(SELECT
+ tt.`产品名`,
+ SUM(tt.购买人数) AS 购买人数,
+ SUM(tt.产品复购客户) AS 产品复购客户,
+ SUM(tt.产品新客户) AS 产品新客户,
+ SUM(tt.店铺回购客户) AS 店铺回购客户,
+ AVG(tt.`辅助列2`) AS 排名1,
+ AVG(tt.`辅助列1`) AS 排名2
+FROM
+(SELECT
+ tt.sys_item_id,
+ zz.产品名,
+ tt.`购买人数`,
+ tt.`产品复购客户`,
+ tt.`产品新客户`,
+ tt.`店铺回购客户`,
+ zz.`辅助列1`,
+ zz.`辅助列2`
+FROM
+(SELECT
+ tt.sys_item_id,
+ COUNT(tt.sys_customer_id) AS 购买人数,
+ SUM(CASE WHEN tt.`产品客户` ='产品复购客户' THEN 1 ELSE 0 END) AS 产品复购客户,
+ SUM(CASE WHEN tt.`产品客户` IS NULL THEN 1 ELSE 0 END) AS 产品新客户,
+ SUM(CASE WHEN tt.`店铺客户` ='店铺复购客户' THEN 1 ELSE 0 END) AS 店铺回购客户
+FROM
+ tag_text.product_repurchase_analysis tt
+GROUP BY
+ tt.sys_item_id)tt
+LEFT JOIN
+ tag_text.items_product_exchange zz
+ON tt.sys_item_id = zz.sys_item_id
+WHERE
+  zz.`产品名` IS NOT NULL
+ORDER BY
+  tt.`购买人数` DESC)tt
+GROUP BY
+  tt.`产品名`
+ORDER BY
+  排名1,
+  排名2)tt
+ORDER BY
+  tt.排名1,
+  tt.排名2;
