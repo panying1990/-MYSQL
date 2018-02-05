@@ -31,8 +31,8 @@
 -- ORDER BY
 --  tt.`区域`,
 --  tt.`事业部`;
--- 
--- # 系统总况-系统客户数
+
+# 系统总况-系统客户数
 -- SELECT
 --  tt.`区域`,
 --  tt.`事业部`,
@@ -75,28 +75,33 @@
 --  tt.`事业部`;
 -- 
 -- 
--- # 系统总况-拜访客户次数
+# 系统总况-拜访客户次数
 -- SELECT
 --  tt.`区域`,
 --  tt.`事业部`,
+-- --  tt.baifang_month,
 --  SUM(tt.`拜访客户次数`) AS 拜访客户次数
 -- FROM
 -- (SELECT
 --  tt.`业务代表名`,
+--  tt.baifang_month,
 --  MID(zz.full_names,6,2) AS 区域,
 --  MID(zz.full_names,9,5) AS 事业部,
 --  tt.`拜访客户次数`
 -- FROM
 -- (SELECT
 --  zz.`name` AS 业务代表名,
+--  tt.baifang_month,
 --  zz.dept_id,
 --  tt.`拜访客户次数`
 -- FROM
 -- (SELECT
+--  tt.baifang_month,
 --  tt.creator_id,
 --  COUNT(tt.customer) AS 拜访客户次数
 -- FROM
 -- (SELECT
+--  MONTH(tt.create_time) AS baifang_month,
 --  tt.creator_id,
 --  tt.customer
 -- FROM
@@ -104,6 +109,7 @@
 -- WHERE
 --  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30")tt
 -- GROUP BY
+--  tt.baifang_month,
 --  tt.creator_id
 -- HAVING
 --  LENGTH(tt.creator_id)>2)tt
@@ -117,35 +123,41 @@
 -- GROUP BY
 --  tt.`区域`,
 --  tt.`事业部`
+-- --  tt.baifang_month
 -- HAVING
 --  tt.`区域` IN("南区","北区")
 -- ORDER BY
 --  tt.`区域`,
 --  tt.`事业部`;
 -- 
--- 
+
 -- # 系统总况-拜访客户户数
 -- SELECT
+-- --  tt.baifang_month,
 --  tt.`区域`,
 --  tt.`事业部`,
---  SUM(tt.`拜访客户次数`) AS 拜访客户户数
+--  SUM(tt.`拜访客户户数`) AS 拜访客户户数
 -- FROM
 -- (SELECT
+-- --  tt.baifang_month,
 --  tt.`业务代表名`,
 --  MID(zz.full_names,6,2) AS 区域,
 --  MID(zz.full_names,9,5) AS 事业部,
---  tt.`拜访客户次数`
+--  tt.`拜访客户户数`
 -- FROM
 -- (SELECT
+-- --  tt.baifang_month,
 --  zz.`name` AS 业务代表名,
 --  zz.dept_id,
---  tt.`拜访客户次数`
+--  tt.`拜访客户户数`
 -- FROM
 -- (SELECT
+-- --  tt.baifang_month,
 --  tt.creator_id,
---  COUNT(DISTINCT tt.customer) AS 拜访客户次数
+--  COUNT(DISTINCT tt.customer) AS 拜访客户户数
 -- FROM
 -- (SELECT
+-- --  MONTH(tt.create_time) AS baifang_month,
 --  tt.creator_id,
 --  tt.customer
 -- FROM
@@ -153,6 +165,7 @@
 -- WHERE
 --  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30")tt
 -- GROUP BY
+-- --  tt.baifang_month,
 --  tt.creator_id
 -- HAVING
 --  LENGTH(tt.creator_id)>2)tt
@@ -164,15 +177,18 @@
 --  waiqin.sys_department zz
 -- ON tt.dept_id = zz.id)tt
 -- GROUP BY
+-- -- tt.baifang_month,
 --  tt.`区域`,
 --  tt.`事业部`
 -- HAVING
 --  tt.`区域` IN("南区","北区")
 -- ORDER BY
+-- --  tt.baifang_month,
 --  tt.`区域`,
 --  tt.`事业部`;
 -- 
--- -- 系统总况-日报数统计
+-- 
+-- 系统总况-日报数统计
 -- SELECT
 --  tt.`区域`,
 --  tt.`事业部`,
@@ -221,7 +237,7 @@
 -- ORDER BY
 --  tt.`区域`,
 --  tt.`事业部`;
--- 
+-- -- 
 -- -- 系统总况-被评论日报数统计
 -- SELECT
 --  tt.`区域`,
@@ -273,12 +289,12 @@
 -- ORDER BY
 --  tt.`区域`,
 --  tt.`事业部`;
--- 
+-- -- 
 -- -- 系统总况-评星日报数统计
 -- SELECT
 --  tt.`区域`,
 --  tt.`事业部`,
---  SUM(tt.日报数) AS 日报总数
+--  SUM(tt.日报数) AS 评星日报总数
 -- FROM
 -- (SELECT
 --  tt.`业务代表名`,
@@ -373,9 +389,705 @@
 --  tt.`区域`,
 --  tt.`事业部`;
 
--- 
 
--- -- 本模块用于外勤365系统的盘点，库存上报明细情况
+-- 被评星日报数-明细
+
+-- 系统总况-日报评星明细-事业部
+-- SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`职务`,
+--  tt.`领导`,
+--  SUM(tt.`日报总数`) AS 日报总数,
+--  SUM(tt.`评星日报总数`) AS 评星日报总数,
+--  CONCAT(ROUND(100*SUM(tt.`评星日报总数`)/SUM(tt.`日报总数`),1),"%") AS 总评星率,
+--  SUM(CASE WHEN tt.`周数` = 1 THEN tt.`日报总数` ELSE 0 END)AS 第1周日报数,
+--  SUM(CASE WHEN tt.`周数` = 1 THEN tt.`评星日报总数` ELSE 0 END)AS 第1周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 1 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 1 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第1周评星率,
+--  SUM(CASE WHEN tt.`周数` = 2 THEN tt.`日报总数` ELSE 0 END)AS 第2周日报数,
+--  SUM(CASE WHEN tt.`周数` = 2 THEN tt.`评星日报总数` ELSE 0 END)AS 第2周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 2 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 2 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第2周评星率,
+-- SUM(CASE WHEN tt.`周数` = 3 THEN tt.`日报总数` ELSE 0 END)AS 第3周日报数,
+--  SUM(CASE WHEN tt.`周数` = 3 THEN tt.`评星日报总数` ELSE 0 END)AS 第3周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 3 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 3 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第3周评星率,
+-- SUM(CASE WHEN tt.`周数` = 4 THEN tt.`日报总数` ELSE 0 END)AS 第4周日报数,
+--  SUM(CASE WHEN tt.`周数` = 4 THEN tt.`评星日报总数` ELSE 0 END)AS 第4周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 4 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 4 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第4周评星率,
+-- SUM(CASE WHEN tt.`周数` = 5 THEN tt.`日报总数` ELSE 0 END)AS 第5周日报数,
+--  SUM(CASE WHEN tt.`周数` = 5 THEN tt.`评星日报总数` ELSE 0 END)AS 第5周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 5 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 5 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第5周评星率,
+-- SUM(CASE WHEN tt.`周数` = 6 THEN tt.`日报总数` ELSE 0 END)AS 第6周日报数,
+--  SUM(CASE WHEN tt.`周数` = 6 THEN tt.`评星日报总数` ELSE 0 END)AS 第6周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 6 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 6 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第6周评星率,
+-- SUM(CASE WHEN tt.`周数` = 7 THEN tt.`日报总数` ELSE 0 END)AS 第7周日报数,
+--  SUM(CASE WHEN tt.`周数` = 7 THEN tt.`评星日报总数` ELSE 0 END)AS 第7周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 7 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 7 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第7周评星率,
+-- SUM(CASE WHEN tt.`周数` = 8 THEN tt.`日报总数` ELSE 0 END)AS 第8周日报数,
+--  SUM(CASE WHEN tt.`周数` = 8 THEN tt.`评星日报总数` ELSE 0 END)AS 第8周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 8 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 8 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第8周评星率,
+-- SUM(CASE WHEN tt.`周数` = 9 THEN tt.`日报总数` ELSE 0 END)AS 第9周日报数,
+--  SUM(CASE WHEN tt.`周数` = 9 THEN tt.`评星日报总数` ELSE 0 END)AS 第9周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 9 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 9 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第9周评星率,
+-- SUM(CASE WHEN tt.`周数` = 10 THEN tt.`日报总数` ELSE 0 END)AS 第10周日报数,
+--  SUM(CASE WHEN tt.`周数` = 10 THEN tt.`评星日报总数` ELSE 0 END)AS 第10周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 10 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 10 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第10周评星率
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`,
+--  tt.`评星日报总数`,
+--  tt.`日报总数`,
+--  zz.`职务`
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`,
+--  SUM(tt.`评星日报数`) AS 评星日报总数,
+--  SUM(tt.`日报数`) AS 日报总数
+-- FROM
+-- (SELECT
+--  tt.`业务代表名`,
+--  tt.`周数`,
+--  aa.`name` AS 领导,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部,
+--  TRIM(MID(zz.full_names,15,7)) AS 地区,
+--  tt.日报数,
+--  tt.`评星日报数`
+-- FROM
+-- (SELECT
+--  zz.`name` AS 业务代表名,
+--  zz.superior_id,
+--  zz.dept_id,
+--  tt.`周数`,
+--  tt.评星日报数,
+--  aa.日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.`周数`,
+--  COUNT(DISTINCT tt.id) AS 评星日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.create_time,
+--  ROUND(11-CEIL((DATEDIFF("2018-01-31",tt.create_time)+4)/7),0) AS 周数,
+--  tt.id
+-- FROM
+--  waiqin.blog_main tt
+-- WHERE
+--  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+-- AND
+--  tt.model_id <> '-1'
+-- AND
+--  tt.score>0)tt
+-- GROUP BY
+--  tt.creator_id,
+--  tt.`周数`
+-- HAVING
+--  LENGTH(tt.creator_id)>2)tt
+-- LEFT JOIN
+-- (SELECT
+--  tt.creator_id,
+--  tt.`周数`,
+--  COUNT(DISTINCT tt.id) AS 日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.create_time,
+--  ROUND(11-CEIL((DATEDIFF("2018-01-31",tt.create_time)+4)/7),0) AS 周数,
+--  tt.id
+-- FROM
+--  waiqin.blog_main tt
+-- WHERE
+--  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+-- AND
+--  tt.model_id <> '-1')tt
+-- GROUP BY
+--  tt.creator_id,
+--  tt.`周数`
+-- HAVING
+--  LENGTH(tt.creator_id)>2)aa
+-- ON
+--  CONCAT(tt.creator_id,tt.`周数`)=CONCAT(aa.creator_id,aa.`周数`)
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.creator_id = zz.id)tt
+-- LEFT JOIN 
+--  waiqin.sys_department zz
+-- ON tt.dept_id = zz.id
+-- LEFT JOIN
+--  waiqin.sys_employee aa
+-- ON
+--  tt.superior_id = aa.id)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`
+-- HAVING
+--  tt.`区域` IN("南区","北区")
+-- ORDER BY
+--  tt.`区域`,
+--  tt.`事业部`)tt
+-- LEFT JOIN
+--  waiqin.`员工数据` zz
+-- ON
+--  tt.`领导` = zz.`姓名（必填）`
+-- WHERE
+-- (zz.`职务` IN("事业部经理","地区经理")
+-- OR
+--  tt.`领导` IN("江丛林","刘宝刚"))
+-- )tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`职务`,
+--  tt.`领导`
+-- HAVING
+--  tt.`职务`="事业部经理";
+
+
+-- 系统总况-日报评星明细-地区经理
+-- SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`职务`,
+--  tt.`领导`,
+--  SUM(tt.`日报总数`) AS 日报总数,
+--  SUM(tt.`评星日报总数`) AS 评星日报总数,
+--  CONCAT(ROUND(100*SUM(tt.`评星日报总数`)/SUM(tt.`日报总数`),1),"%") AS 总评星率,
+--  SUM(CASE WHEN tt.`周数` = 1 THEN tt.`日报总数` ELSE 0 END)AS 第1周日报数,
+--  SUM(CASE WHEN tt.`周数` = 1 THEN tt.`评星日报总数` ELSE 0 END)AS 第1周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 1 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 1 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第1周评星率,
+--  SUM(CASE WHEN tt.`周数` = 2 THEN tt.`日报总数` ELSE 0 END)AS 第2周日报数,
+--  SUM(CASE WHEN tt.`周数` = 2 THEN tt.`评星日报总数` ELSE 0 END)AS 第2周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 2 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 2 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第2周评星率,
+-- SUM(CASE WHEN tt.`周数` = 3 THEN tt.`日报总数` ELSE 0 END)AS 第3周日报数,
+--  SUM(CASE WHEN tt.`周数` = 3 THEN tt.`评星日报总数` ELSE 0 END)AS 第3周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 3 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 3 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第3周评星率,
+-- SUM(CASE WHEN tt.`周数` = 4 THEN tt.`日报总数` ELSE 0 END)AS 第4周日报数,
+--  SUM(CASE WHEN tt.`周数` = 4 THEN tt.`评星日报总数` ELSE 0 END)AS 第4周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 4 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 4 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第4周评星率,
+-- SUM(CASE WHEN tt.`周数` = 5 THEN tt.`日报总数` ELSE 0 END)AS 第5周日报数,
+--  SUM(CASE WHEN tt.`周数` = 5 THEN tt.`评星日报总数` ELSE 0 END)AS 第5周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 5 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 5 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第5周评星率,
+-- SUM(CASE WHEN tt.`周数` = 6 THEN tt.`日报总数` ELSE 0 END)AS 第6周日报数,
+--  SUM(CASE WHEN tt.`周数` = 6 THEN tt.`评星日报总数` ELSE 0 END)AS 第6周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 6 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 6 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第6周评星率,
+-- SUM(CASE WHEN tt.`周数` = 7 THEN tt.`日报总数` ELSE 0 END)AS 第7周日报数,
+--  SUM(CASE WHEN tt.`周数` = 7 THEN tt.`评星日报总数` ELSE 0 END)AS 第7周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 7 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 7 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第7周评星率,
+-- SUM(CASE WHEN tt.`周数` = 8 THEN tt.`日报总数` ELSE 0 END)AS 第8周日报数,
+--  SUM(CASE WHEN tt.`周数` = 8 THEN tt.`评星日报总数` ELSE 0 END)AS 第8周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 8 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 8 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第8周评星率,
+-- SUM(CASE WHEN tt.`周数` = 9 THEN tt.`日报总数` ELSE 0 END)AS 第9周日报数,
+--  SUM(CASE WHEN tt.`周数` = 9 THEN tt.`评星日报总数` ELSE 0 END)AS 第9周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 9 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 9 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第9周评星率,
+-- SUM(CASE WHEN tt.`周数` = 10 THEN tt.`日报总数` ELSE 0 END)AS 第9周日报数,
+--  SUM(CASE WHEN tt.`周数` = 10 THEN tt.`评星日报总数` ELSE 0 END)AS 第9周评星日报数,
+--  CONCAT(ROUND(100*SUM(CASE WHEN tt.`周数` = 10 THEN tt.`评星日报总数` ELSE 0 END) /SUM(CASE WHEN tt.`周数` = 10 THEN tt.`日报总数` ELSE 0 END),1),"%") AS 第10周评星率
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`,
+--  tt.`评星日报总数`,
+--  tt.`日报总数`,
+--  zz.`职务`
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`,
+--  SUM(tt.`评星日报数`) AS 评星日报总数,
+--  SUM(tt.`日报数`) AS 日报总数
+-- FROM
+-- (SELECT
+--  tt.`业务代表名`,
+--  tt.`周数`,
+--  aa.`name` AS 领导,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部,
+--  TRIM(MID(zz.full_names,15,7)) AS 地区,
+--  tt.日报数,
+--  tt.`评星日报数`
+-- FROM
+-- (SELECT
+--  zz.`name` AS 业务代表名,
+--  zz.superior_id,
+--  zz.dept_id,
+--  tt.`周数`,
+--  tt.评星日报数,
+--  aa.日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.`周数`,
+--  COUNT(DISTINCT tt.id) AS 评星日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.create_time,
+--  ROUND(11-CEIL((DATEDIFF("2018-01-31",tt.create_time)+4)/7)) AS 周数,
+--  tt.id
+-- FROM
+--  waiqin.blog_main tt
+-- WHERE
+--  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+-- AND
+--  tt.model_id <> '-1'
+-- AND
+--  tt.score>0)tt
+-- GROUP BY
+--  tt.creator_id,
+--  tt.`周数`
+-- HAVING
+--  LENGTH(tt.creator_id)>2)tt
+-- LEFT JOIN
+-- (SELECT
+--  tt.creator_id,
+--  tt.`周数`,
+--  COUNT(DISTINCT tt.id) AS 日报数
+-- FROM
+-- (SELECT
+--  tt.creator_id,
+--  tt.create_time,
+--  ROUND(11-CEIL((DATEDIFF("2018-01-31",tt.create_time)+4)/7)) AS 周数,
+--  tt.id
+-- FROM
+--  waiqin.blog_main tt
+-- WHERE
+--  DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+-- AND
+--  tt.model_id <> '-1')tt
+-- GROUP BY
+--  tt.creator_id,
+--  tt.`周数`
+-- HAVING
+--  LENGTH(tt.creator_id)>2)aa
+-- ON
+--  CONCAT(tt.creator_id,tt.`周数`)=CONCAT(aa.creator_id,aa.`周数`)
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.creator_id = zz.id)tt
+-- LEFT JOIN 
+--  waiqin.sys_department zz
+-- ON tt.dept_id = zz.id
+-- LEFT JOIN
+--  waiqin.sys_employee aa
+-- ON
+--  tt.superior_id = aa.id)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`领导`,
+--  tt.`周数`
+-- HAVING
+--  tt.`区域` IN("南区","北区")
+-- ORDER BY
+--  tt.`区域`,
+--  tt.`事业部`)tt
+-- LEFT JOIN
+--  waiqin.`员工数据` zz
+-- ON
+--  tt.`领导` = zz.`姓名（必填）`
+-- WHERE
+-- (zz.`职务` IN("事业部经理","地区经理")
+-- OR
+--  tt.`领导` IN("江丛林","刘宝刚"))
+-- )tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.`职务`,
+--  tt.`领导`
+-- HAVING
+--  (tt.`职务`="地区经理"
+-- OR
+--  tt.`领导` IN("江丛林","刘宝刚"))
+-- AND
+--  tt.`领导`<>"潘彪"
+-- ORDER BY
+--  总评星率 DESC;
+
+
+-- 战报速递使用明细
+
+-- 系统总况——战报速递查看情况
+
+-- -- SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.地区,
+--  tt.姓名,
+--  SUM(tt.查看次数) AS 总查看次数,
+--  SUM((CASE WHEN tt.周数 = 1 THEN tt.查看次数 ELSE 0 END)) AS 第1周查看次数,
+--  SUM((CASE WHEN tt.周数 = 2 THEN tt.查看次数 ELSE 0 END)) AS 第2周查看次数,
+--  SUM((CASE WHEN tt.周数 = 3 THEN tt.查看次数 ELSE 0 END)) AS 第3周查看次数,
+--  SUM((CASE WHEN tt.周数 = 4 THEN tt.查看次数 ELSE 0 END)) AS 第4周查看次数,
+--  SUM((CASE WHEN tt.周数 = 5 THEN tt.查看次数 ELSE 0 END)) AS 第5周查看次数,
+--  SUM((CASE WHEN tt.周数 = 6 THEN tt.查看次数 ELSE 0 END)) AS 第6周查看次数,
+--  SUM((CASE WHEN tt.周数 = 7 THEN tt.查看次数 ELSE 0 END)) AS 第7周查看次数,
+--  SUM((CASE WHEN tt.周数 = 8 THEN tt.查看次数 ELSE 0 END)) AS 第8周查看次数,
+--  SUM((CASE WHEN tt.周数 = 9 THEN tt.查看次数 ELSE 0 END)) AS 第9周查看次数,
+--  SUM((CASE WHEN tt.周数 = 10 THEN tt.查看次数 ELSE 0 END)) AS 第10周查看次数
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.地区,
+--  tt.姓名,
+--  tt.周数,
+--  COUNT(tt.姓名) AS 查看次数
+-- FROM
+-- (SELECT
+--  tt.app_id,
+--  tt.user_id,
+--  tt.occur_time,
+--  ROUND(11-CEIL((DATEDIFF(now(),tt.occur_time)+4)/7)) AS 周数,
+--  tt.姓名,
+--  tt.dept_id,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部,
+--  TRIM(MID(zz.full_names,15,7)) AS 地区
+-- FROM
+-- (SELECT
+--  tt.app_id,
+--  tt.user_id,
+--  tt.occur_time,
+--  zz.`name` AS 姓名,
+--  zz.dept_id
+-- FROM
+-- (SELECT
+--  tt.app_id,
+--  tt.user_id,
+--  tt.occur_time
+-- FROM
+--  waiqin.sys_statlog tt
+-- WHERE
+--  tt.app_id = 8301820460786548572
+-- AND
+--  DATE_FORMAT(tt.occur_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30")tt
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON tt.user_id = zz.id)tt
+-- LEFT JOIN
+--  waiqin.sys_department zz
+-- ON tt.dept_id= zz.id)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.地区,
+--  tt.姓名,
+--  tt.周数
+-- HAVING
+--  tt.`区域` IN("南区","北区")
+-- ORDER BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.地区,
+--  tt.姓名)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.地区,
+--  tt.姓名
+-- HAVING
+--  LENGTH(tt.`事业部`)>2
+-- ORDER BY
+--  tt.`区域`,
+--  总查看次数 DESC;
+
+-- 系统功能模块使用明细
+
+-- -- 系统使用情况汇总
+-- SELECT
+--  tt.menu_id,
+--  zz.`name` AS 应用模块,
+--  COUNT(DISTINCT tt.user_id) AS 使用人数,
+--  COUNT(tt.user_id) AS 使用人次
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  zz.dept_id
+-- FROM
+-- (
+-- SELECT
+--  tt.user_id,
+--  tt.menu_id,
+-- FROM
+--  waiqin.sys_statlog tt
+-- WHERE
+--  DATE_FORMAT(tt.occur_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+--  )tt
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.user_id = zz.id
+-- WHERE
+--  RIGHT(zz.`name`,4)<>"(停用)")tt
+-- LEFT JOIN
+--  waiqin.sys_department zz
+-- ON
+--  tt.dept_id = zz.id
+-- WHERE
+--  MID(zz.full_names,6,2) IN ("南区","北区")
+-- )tt
+-- -- INNER JOIN waiqin.app_baseinfo zz
+-- -- ON tt.app_id = zz.id
+-- INNER JOIN waiqin.app_menu zz
+-- ON tt.menu_id = zz.id
+-- -- INNER JOIN
+-- --  waiqin.sys_department zz
+-- -- ON tt.dept_id = zz.id
+-- -- WHERE
+-- --  MID(zz.full_names,11,5) ="事业部";
+-- GROUP BY
+--  tt.menu_id,
+--  应用模块
+-- ORDER BY
+--  使用人数 DESC;
+
+
+-- -- 各事业部使用情况明细
+-- -- 系统使用情况汇总----使用人数
+-- SELECT
+-- tt.区域,
+-- tt.`事业部`,
+-- SUM(CASE WHEN tt.`功能项` = "高级拜访（业务拜访）" THEN tt.`总使用人数` ELSE 0 END) AS 业务拜访,
+-- SUM(CASE WHEN tt.`功能项` = "库存上报" THEN tt.`总使用人数` ELSE 0 END) AS 库存上报,
+-- SUM(CASE WHEN tt.`功能项` = "扫码查询（窜货查询）" THEN tt.`总使用人数` ELSE 0 END) AS 窜货查询,
+-- SUM(CASE WHEN tt.`功能项` = "任务协议" THEN tt.`总使用人数` ELSE 0 END) AS 活动协议,
+-- SUM(CASE WHEN tt.`功能项` = "促销拜访" THEN tt.`总使用人数` ELSE 0 END) AS 促销拜访,
+-- SUM(CASE WHEN tt.`功能项` = "促销上报" THEN tt.`总使用人数` ELSE 0 END) AS 促销上报,
+-- SUM(CASE WHEN tt.`功能项` = "顾客信息" THEN tt.`总使用人数` ELSE 0 END) AS 自定义表单,
+-- SUM(CASE WHEN tt.`功能项` = "通知公告" THEN tt.`总使用人数` ELSE 0 END) AS 通知公告,
+-- SUM(CASE WHEN tt.`功能项` = "任务" THEN tt.`总使用人数` ELSE 0 END) AS 任务,
+-- SUM(CASE WHEN tt.`功能项` = "文档管理" THEN tt.`总使用人数` ELSE 0 END) AS 文档管理,
+-- SUM(CASE WHEN tt.`功能项` = "日报" THEN tt.`总使用人数` ELSE 0 END) AS 日报,
+-- SUM(CASE WHEN tt.`功能项` = "考勤" THEN tt.`总使用人数` ELSE 0 END) AS 考勤,
+-- SUM(CASE WHEN tt.`功能项` = "工作轨迹" THEN tt.`总使用人数` ELSE 0 END) AS 工作轨迹,
+-- SUM(CASE WHEN tt.`功能项` = "预置报表" THEN tt.`总使用人数` ELSE 0 END) AS 预置报表,
+-- SUM(CASE WHEN tt.`功能项` = "战报速递" THEN tt.`总使用人数` ELSE 0 END) AS 战报速递,
+-- SUM(CASE WHEN tt.`功能项` = "即时沟通" THEN tt.`总使用人数` ELSE 0 END) AS 聊天消息,
+-- SUM(CASE WHEN tt.`功能项` = "客户" THEN tt.`总使用人数` ELSE 0 END) AS 客户,
+-- SUM(CASE WHEN tt.`功能项` = "客户联系人" THEN tt.`总使用人数` ELSE 0 END) AS 客户联系人,
+-- SUM(CASE WHEN tt.`功能项` = "通讯录" THEN tt.`总使用人数` ELSE 0 END) AS 通讯录
+-- FROM
+-- (SELECT
+--  tt.区域,
+--  tt.`事业部`,
+--  tt.`应用模块`,
+--  zz.`功能项`,
+--  SUM(tt.`使用人次`) AS 总使用人次,
+--  SUM(tt.使用人数) AS 总使用人数
+-- FROM
+-- (SELECT
+--  tt.区域,
+--  tt.事业部,
+--  tt.menu_id,
+--  zz.`name` AS 应用模块,
+--  COUNT(DISTINCT tt.user_id) AS 使用人数,
+--  COUNT(tt.user_id) AS 使用人次
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  zz.dept_id
+-- FROM
+-- (
+-- SELECT
+--  tt.menu_id,
+--  tt.user_id
+-- FROM
+--  waiqin.sys_statlog tt
+-- WHERE
+--  DATE_FORMAT(tt.occur_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+--  )tt
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.user_id = zz.id
+-- WHERE
+--  RIGHT(zz.`name`,4)<>"(停用)")tt
+-- LEFT JOIN
+--  waiqin.sys_department zz
+-- ON
+--  tt.dept_id = zz.id
+-- WHERE
+--  MID(zz.full_names,6,2) IN ("南区","北区")
+-- )tt
+-- -- INNER JOIN waiqin.app_baseinfo zz
+-- -- ON tt.app_id = zz.id
+-- INNER JOIN waiqin.app_menu zz
+-- ON tt.menu_id = zz.id
+-- -- INNER JOIN
+-- --  waiqin.sys_department zz
+-- -- ON tt.dept_id = zz.id
+-- -- WHERE
+-- --  MID(zz.full_names,11,5) ="事业部";
+-- GROUP BY
+--  tt.区域,
+--  tt.事业部,
+--  tt.menu_id,
+--  应用模块
+-- ORDER BY
+--  使用人数 DESC)tt
+-- LEFT JOIN
+-- waiqin.menu_v_function zz
+-- ON tt.应用模块 = zz.功能菜单
+-- GROUP BY
+--  tt.`事业部`,
+--  tt.`应用模块`,
+--  zz.`功能项`
+-- HAVING
+--  zz.`功能项` IS NOT NULL)tt
+-- GROUP BY
+--  tt.区域,
+--  tt.`事业部`
+-- ORDER BY
+--  tt.区域,
+--  tt.`事业部`;
+
+
+-- -- 系统使用情况汇总----使用人次
+-- 
+-- SELECT
+-- tt.区域,
+-- tt.`事业部`,
+-- SUM(CASE WHEN tt.`功能项` = "高级拜访（业务拜访）" THEN tt.`总使用人次` ELSE 0 END) AS 业务拜访,
+-- SUM(CASE WHEN tt.`功能项` = "库存上报" THEN tt.`总使用人次` ELSE 0 END) AS 库存上报,
+-- SUM(CASE WHEN tt.`功能项` = "扫码查询（窜货查询）" THEN tt.`总使用人次` ELSE 0 END) AS 窜货查询,
+-- SUM(CASE WHEN tt.`功能项` = "任务协议" THEN tt.`总使用人次` ELSE 0 END) AS 活动协议,
+-- SUM(CASE WHEN tt.`功能项` = "促销拜访" THEN tt.`总使用人次` ELSE 0 END) AS 促销拜访,
+-- SUM(CASE WHEN tt.`功能项` = "促销上报" THEN tt.`总使用人次` ELSE 0 END) AS 促销上报,
+-- SUM(CASE WHEN tt.`功能项` = "顾客信息" THEN tt.`总使用人次` ELSE 0 END) AS 自定义表单,
+-- SUM(CASE WHEN tt.`功能项` = "通知公告" THEN tt.`总使用人次` ELSE 0 END) AS 通知公告,
+-- SUM(CASE WHEN tt.`功能项` = "任务" THEN tt.`总使用人次` ELSE 0 END) AS 任务,
+-- SUM(CASE WHEN tt.`功能项` = "文档管理" THEN tt.`总使用人次` ELSE 0 END) AS 文档管理,
+-- SUM(CASE WHEN tt.`功能项` = "日报" THEN tt.`总使用人次` ELSE 0 END) AS 日报,
+-- SUM(CASE WHEN tt.`功能项` = "考勤" THEN tt.`总使用人次` ELSE 0 END) AS 考勤,
+-- SUM(CASE WHEN tt.`功能项` = "工作轨迹" THEN tt.`总使用人次` ELSE 0 END) AS 工作轨迹,
+-- SUM(CASE WHEN tt.`功能项` = "预置报表" THEN tt.`总使用人次` ELSE 0 END) AS 预置报表,
+-- SUM(CASE WHEN tt.`功能项` = "战报速递" THEN tt.`总使用人次` ELSE 0 END) AS 战报速递,
+-- SUM(CASE WHEN tt.`功能项` = "即时沟通" THEN tt.`总使用人次` ELSE 0 END) AS 聊天消息,
+-- SUM(CASE WHEN tt.`功能项` = "客户" THEN tt.`总使用人次` ELSE 0 END) AS 客户,
+-- SUM(CASE WHEN tt.`功能项` = "客户联系人" THEN tt.`总使用人次` ELSE 0 END) AS 客户联系人,
+-- SUM(CASE WHEN tt.`功能项` = "通讯录" THEN tt.`总使用人次` ELSE 0 END) AS 通讯录
+-- FROM
+-- (SELECT
+--  tt.区域,
+--  tt.`事业部`,
+--  tt.`应用模块`,
+--  zz.`功能项`,
+--  SUM(tt.`使用人次`) AS 总使用人次,
+--  SUM(tt.使用人数) AS 总使用人数
+-- FROM
+-- (SELECT
+--  tt.区域,
+--  tt.事业部,
+--  tt.menu_id,
+--  zz.`name` AS 应用模块,
+--  COUNT(DISTINCT tt.user_id) AS 使用人数,
+--  COUNT(tt.user_id) AS 使用人次
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  MID(zz.full_names,6,2) AS 区域,
+--  MID(zz.full_names,9,5) AS 事业部
+-- FROM
+-- (SELECT
+--  tt.menu_id,
+--  tt.user_id,
+--  zz.dept_id
+-- FROM
+-- (
+-- SELECT
+--  tt.menu_id,
+--  tt.user_id
+-- FROM
+--  waiqin.sys_statlog tt
+-- WHERE
+--  DATE_FORMAT(tt.occur_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+--  )tt
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.user_id = zz.id
+-- WHERE
+--  RIGHT(zz.`name`,4)<>"(停用)")tt
+-- LEFT JOIN
+--  waiqin.sys_department zz
+-- ON
+--  tt.dept_id = zz.id
+-- WHERE
+--  MID(zz.full_names,6,2) IN ("南区","北区")
+-- )tt
+-- -- INNER JOIN waiqin.app_baseinfo zz
+-- -- ON tt.app_id = zz.id
+-- INNER JOIN waiqin.app_menu zz
+-- ON tt.menu_id = zz.id
+-- -- INNER JOIN
+-- --  waiqin.sys_department zz
+-- -- ON tt.dept_id = zz.id
+-- -- WHERE
+-- --  MID(zz.full_names,11,5) ="事业部";
+-- GROUP BY
+--  tt.区域,
+--  tt.事业部,
+--  tt.menu_id,
+--  应用模块
+-- ORDER BY
+--  使用人数 DESC)tt
+-- LEFT JOIN
+-- waiqin.menu_v_function zz
+-- ON tt.应用模块 = zz.功能菜单
+-- GROUP BY
+--  tt.`事业部`,
+--  tt.`应用模块`,
+--  zz.`功能项`
+-- HAVING
+--  zz.`功能项` IS NOT NULL)tt
+-- GROUP BY
+--  tt.区域,
+--  tt.`事业部`
+-- ORDER BY
+--  tt.区域,
+--  tt.`事业部`;
+
+-- 本模块用于外勤365系统的盘点，库存上报明细情况
+
 -- SELECT
 --  tt.`区域`,
 --  tt.`部门（必填）` AS 地区,
@@ -392,6 +1104,121 @@
 -- FROM
 -- (SELECT
 --  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+-- SUM((CASE WHEN tt.客户类型 = "过期品" THEN tt.`客户数` ELSE 0 END)) AS 过期品客户数,
+-- SUM((CASE WHEN tt.客户类型 = "红灯区" THEN tt.`客户数` ELSE 0 END)) AS 红灯区客户数,
+-- SUM((CASE WHEN tt.客户类型 = "黄灯区" THEN tt.`客户数` ELSE 0 END)) AS 黄灯区客户数,
+-- SUM((CASE WHEN tt.客户类型 = "绿灯区" THEN tt.`客户数` ELSE 0 END)) AS 绿灯区客户数,
+-- SUM(tt.客户数) AS 拜访客户数
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.客户类型,
+--  COUNT(DISTINCT tt.customerid) AS 客户数
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.customerid,
+-- CASE WHEN tt.`最大近效期` IS NULL THEN "过期品"
+--      WHEN tt.`最大近效期`<90 THEN "红灯区"
+--      WHEN tt.`最大近效期`<270 THEN "黄灯区"
+--      ELSE "绿灯区" END AS 客户类型
+-- FROM
+-- (SELECT
+--   MID(zz.full_names,6,2) AS 区域,
+--   MID(zz.full_names,9,5) AS 事业部,
+--   TRIM(MID(zz.full_names,15,7)) AS 地区,
+--   tt.creator_id,
+--   tt.customerid,
+--   tt.`最大近效期`
+-- FROM
+-- (
+-- SELECT
+-- --  tt.creat_month,
+-- --  COUNT(DISTINCT tt.ord_no) 上报次数,
+-- --  COUNT(DISTINCT tt.conbiny_ord_no) AS 上报信息数
+--  tt.creator_id,
+--  tt.customerid,
+--  zz.`name` AS 上报人,
+--  zz.dept_id,
+--  MAX(tt.`效期`) AS 最大近效期
+-- FROM
+-- (SELECT
+--  tt.create_time,
+--  MONTH(tt.create_time) AS creat_month,
+--  tt.id,
+--  tt.ord_no,
+-- --  CONCAT(tt.customerid,tt.productid) AS conbiny_ord_no,
+--  tt.customerid,
+--  tt.creator_id,
+--  tt.productid,
+--  DATEDIFF(DATE(tt.exp_date),"2018-01-30") AS 效期,
+--  zz.valid_period
+-- FROM
+-- waiqin.stdstore_order_entry_bas tt
+-- LEFT JOIN
+-- waiqin.bas_pd_product zz
+-- ON 
+--  tt.productid=zz.id
+-- WHERE
+-- DATE_FORMAT(tt.create_time,"%Y-%m-%d") BETWEEN "2017-12-01" AND "2018-01-30"
+--  )tt
+-- LEFT JOIN
+--  waiqin.sys_employee zz
+-- ON
+--  tt.creator_id = zz.id
+-- GROUP BY
+--  tt.creator_id,
+--  tt.customerid,
+--  zz.dept_id,
+--  tt.productid
+-- ORDER BY
+--  最大近效期 DESC)tt
+-- LEFT JOIN
+-- waiqin.sys_department zz
+-- ON tt.dept_id = zz.id
+-- WHERE
+--  tt.`最大近效期` IS NOT NULL)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.customerid)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`,
+--  tt.客户类型)tt
+-- GROUP BY
+--  tt.`区域`,
+--  tt.`事业部`,
+--  tt.`地区`;
+
+
+-- -- 本模块用于外勤365系统的盘点，库存上报明细情况
+-- SELECT
+--  tt.`区域`,
+--  tt.事业部,
+--  tt.`部门（必填）` AS 地区,
+--  tt.`上级领导` AS 地区负责人,
+--  tt.`客户总数` AS 拜访客户数,
+--  tt.过期品客户数,
+--  CONCAT(ROUND(100*tt.过期品客户数/tt.`客户总数`,1),"%") AS 过期品客户数占比,
+--  tt.红灯区客户数,
+--  CONCAT(ROUND(100*tt.红灯区客户数/tt.`客户总数`,1),"%") AS 红灯区客户数占比,
+--  tt.黄灯区客户数,
+--  CONCAT(ROUND(100*tt.黄灯区客户数/tt.`客户总数`,1),"%") AS 黄灯区客户数占比,
+--  tt.绿灯区客户数,
+--  CONCAT(ROUND(100*tt.绿灯区客户数/tt.`客户总数`,1),"%") AS 绿灯区客户数占比
+-- FROM
+-- (SELECT
+--  tt.`区域`,
+--  tt.事业部,
 --  tt.`部门（必填）`,
 --  tt.`上级领导`,
 -- SUM((CASE WHEN tt.`类型` = "过期品" THEN tt.`客户数` ELSE 0 END)) AS 过期品客户数,
@@ -402,6 +1229,7 @@
 -- FROM
 -- (SELECT
 --  tt.`区域`,
+--  tt.事业部,
 --  tt.`部门（必填）`,
 --  tt.`上级领导`,
 --  tt.`类型`,
@@ -410,6 +1238,7 @@
 -- FROM
 -- (SELECT
 --  MID(tt.`部门全路径`,6,2) AS 区域,
+--  MID(tt.`部门全路径`,9,5) AS 事业部,
 --  tt.`部门（必填）`,
 --  tt.`上级领导`,
 --  tt.`类型`,
@@ -436,6 +1265,7 @@
 -- LEFT JOIN
 -- (SELECT
 --  MID(tt.`部门全路径`,6,2) AS 区域,
+--  MID(tt.`部门全路径`,9,5) AS 事业部,
 --  tt.`部门（必填）`,
 --  tt.`上级领导`,
 --  COUNT(tt.`客户名称`) AS 客户数
@@ -455,6 +1285,7 @@
 --  tt.`最近上报人`=zz.`姓名（必填）`)tt
 -- GROUP BY
 --  区域,
+--  事业部,
 --  tt.`部门（必填）`,
 --  tt.`上级领导`)zz
 -- ON CONCAT(tt.`区域`,tt.`部门（必填）`,tt.`上级领导`)= CONCAT(zz.`区域`,zz.`部门（必填）`,zz.`上级领导`))tt
@@ -463,60 +1294,13 @@
 --  tt.`部门（必填）`,
 --  tt.`上级领导`)tt
 -- ORDER BY
---  tt.区域 DESC,
+--  红灯区客户数占比 DESC,
 --  地区;
---  
--- -- # 战报速递使用情况
--- SELECT
---  tt.`区域`,
---  tt.`职务`,
---  tt.`操作用户`,
---  SUM(tt.操作次数) AS 总操作次数,
---  SUM((CASE WHEN tt.`操作周` = "48" THEN tt.操作次数 ELSE 0 END)) AS 第48周操作次数,
---  SUM((CASE WHEN tt.`操作周` = "49" THEN tt.操作次数 ELSE 0 END)) AS 第49周操作次数,
---  SUM((CASE WHEN tt.`操作周` = "50" THEN tt.操作次数 ELSE 0 END)) AS 第50周操作次数,
---  SUM((CASE WHEN tt.`操作周` = "51" THEN tt.操作次数 ELSE 0 END)) AS 第51周操作次数,
---  SUM((CASE WHEN tt.`操作周` = "52" THEN tt.操作次数 ELSE 0 END)) AS 第52周操作次数
--- FROM
--- (SELECT
---  tt.`区域`,
---  tt.`职务`,
---  tt.`操作用户`,
---  tt.`操作周`,
---  COUNT(DISTINCT tt.`操作时间`) AS 操作次数
--- FROM
--- (SELECT
---  MID(zz.`部门全路径`,6,2) AS 区域,
---  tt.`操作时间`,
---  WEEKOFYEAR(tt.`操作时间`) AS 操作周,
---  tt.`操作用户`,
---  zz.`职务`,
---  tt.`操作类型`
--- FROM
---  waiqin.`战报速递使用明细` tt
--- LEFT JOIN
---  waiqin.`员工数据` zz
--- ON
---  tt.`操作用户`= zz.`姓名（必填）`
---  WHERE
---  (zz.`职务` IN("事业部经理","地区经理")
--- OR
---   zz.`姓名（必填）` IN("江丛林","刘宝刚")))tt
--- GROUP BY
---  tt.`区域`,
---  tt.`职务`,
---  tt.`操作用户`,
---  tt.`操作周`)tt
--- GROUP BY
---  tt.`区域`,
---  tt.`职务`,
---  tt.`操作用户`
--- ORDER BY
---  tt.`区域`,
---  tt.`职务`,
---  总操作次数 DESC;
 -- 
--- 
+
+
+
+
 -- -- 任务发布情况
 -- SELECT
 --  tt.`区域`,
@@ -524,11 +1308,16 @@
 --  tt.`职务`,
 --  tt.`创建人`,
 --  SUM(tt.任务创建次数) AS 发布任务数,
---  SUM((CASE WHEN tt.`创建周` = "48" THEN tt.任务创建次数 ELSE 0 END)) AS 第48周发布任务数,
---  SUM((CASE WHEN tt.`创建周` = "49" THEN tt.任务创建次数 ELSE 0 END)) AS 第49周发布任务数,
---  SUM((CASE WHEN tt.`创建周` = "50" THEN tt.任务创建次数 ELSE 0 END)) AS 第50周发布任务数,
---  SUM((CASE WHEN tt.`创建周` = "51" THEN tt.任务创建次数 ELSE 0 END)) AS 第51周发布任务数,
---  SUM((CASE WHEN tt.`创建周` = "52" THEN tt.任务创建次数 ELSE 0 END)) AS 第52周发布任务数
+--  SUM((CASE WHEN tt.`创建周` = "1" THEN tt.任务创建次数 ELSE 0 END)) AS 第1周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "2" THEN tt.任务创建次数 ELSE 0 END)) AS 第2周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "3" THEN tt.任务创建次数 ELSE 0 END)) AS 第3周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "4" THEN tt.任务创建次数 ELSE 0 END)) AS 第4周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "5" THEN tt.任务创建次数 ELSE 0 END)) AS 第5周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "6" THEN tt.任务创建次数 ELSE 0 END)) AS 第6周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "7" THEN tt.任务创建次数 ELSE 0 END)) AS 第7周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "8" THEN tt.任务创建次数 ELSE 0 END)) AS 第8周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "9" THEN tt.任务创建次数 ELSE 0 END)) AS 第9周发布任务数,
+--  SUM((CASE WHEN tt.`创建周` = "10" THEN tt.任务创建次数 ELSE 0 END)) AS 第10周发布任务数
 -- FROM
 -- (SELECT
 --  tt.`区域`,
@@ -544,10 +1333,10 @@
 --  MID(zz.`部门全路径`,6,2) AS 区域,
 --  zz.`部门（必填）`,
 --  tt.`创建时间`,
---  WEEKOFYEAR(tt.`创建时间`) AS 创建周,
+--  ROUND(11-CEIL((DATEDIFF(now(),tt.`创建时间`)+4)/7)) AS 创建周,
 --  tt.`创建人`,
 --  zz.`职务`,
---  tt.`总通知人数`,
+--  (tt.`已办理`+tt.`未办理`)AS`总通知人数`,
 --  tt.`已办理`
 -- FROM
 -- waiqin.`任务情况` tt
@@ -571,18 +1360,23 @@
 --  tt.`部门（必填）`;
 -- 
 -- 
--- -- -- 任务执行情况
+-- -- 任务执行情况
 -- SELECT
 --  tt.`区域`,
 --  tt.`部门（必填）`,
 --  tt.`职务`,
 --  tt.`创建人`,
 --  SUM(tt.任务创建次数) AS 发布任务数,
---  ROUND(100*SUM((CASE WHEN tt.`创建周` = "48" THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = "48" THEN tt.任务送达 ELSE 0 END)),1) AS 第48周执行率,
---  ROUND(100*SUM((CASE WHEN tt.`创建周` = "49" THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = "49" THEN tt.任务送达 ELSE 0 END)),1) AS 第49周执行率,
---  ROUND(100*SUM((CASE WHEN tt.`创建周` = "50" THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = "50" THEN tt.任务送达 ELSE 0 END)),1) AS 第50周执行率,
---  ROUND(100*SUM((CASE WHEN tt.`创建周` = "51" THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = "51" THEN tt.任务送达 ELSE 0 END)),1) AS 第51周执行率,
---  ROUND(100*SUM((CASE WHEN tt.`创建周` = "52" THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = "52" THEN tt.任务送达 ELSE 0 END)),1) AS 第52周执行率
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 1 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 1 THEN tt.任务送达 ELSE 0 END)),1) AS 第1周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 2 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 2 THEN tt.任务送达 ELSE 0 END)),1) AS 第2周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 3 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 3 THEN tt.任务送达 ELSE 0 END)),1) AS 第3周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 4 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 4 THEN tt.任务送达 ELSE 0 END)),1) AS 第4周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 5 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 5 THEN tt.任务送达 ELSE 0 END)),1) AS 第5周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 6 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 6 THEN tt.任务送达 ELSE 0 END)),1) AS 第6周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 7 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 7 THEN tt.任务送达 ELSE 0 END)),1) AS 第7周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 8 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 8 THEN tt.任务送达 ELSE 0 END)),1) AS 第8周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 9 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 9 THEN tt.任务送达 ELSE 0 END)),1) AS 第9周执行率,
+--  ROUND(100*SUM((CASE WHEN tt.`创建周` = 10 THEN tt.任务执行 ELSE 0 END))/SUM((CASE WHEN tt.`创建周` = 10 THEN tt.任务送达 ELSE 0 END)),1) AS 第10周执行率
 -- FROM
 -- (SELECT
 --  tt.`区域`,
@@ -598,10 +1392,10 @@
 --  MID(zz.`部门全路径`,6,2) AS 区域,
 --  zz.`部门（必填）`,
 --  tt.`创建时间`,
---  WEEKOFYEAR(tt.`创建时间`) AS 创建周,
+--  ROUND(11-CEIL((DATEDIFF(now(),tt.`创建时间`)+4)/7)) AS 创建周,
 --  tt.`创建人`,
 --  zz.`职务`,
---  tt.`总通知人数`,
+--  (tt.`已办理`+tt.`未办理`)AS`总通知人数`,
 --  tt.`已办理`
 -- FROM
 -- waiqin.`任务情况` tt
@@ -623,7 +1417,7 @@
 --  tt.`区域` DESC,
 --  tt.`职务`,
 --  tt.`部门（必填）`;
--- -- 
+-- 
 
 
 
