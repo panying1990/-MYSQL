@@ -1,0 +1,413 @@
+-- 会员营销这边需要针对所有KPI统计进行活跃用户与沉睡用户的统计。
+-- 数据维度： 月度、季度、年度
+-- 取数周期：建议取数为月度，统计取数时间后2日10点
+-- 数据相关维度及定义
+
+
+ /*
+1、时间维度：用两个方向来约束
+   1).历史以来数据
+   2).2016年以后数据
+2、数据渠道：
+   1).碧生源官方旗舰店   
+   2).微商城   
+   3).京东营养健康旗舰店
+3、数据定义：
+   1)、客户总数:有过下单行为的客户数
+   2)、活跃客户数:最后下单时间在45天之内客户
+   3)、活跃客户占比:活跃客户数/客户总数
+   4)、会员总数:成功付款1次以上客户数
+   5)、沉睡会员数:360天之前付款成功，近360天内未购买的会员数
+   6)、沉睡会员唤醒数：近30天内有过下单的沉睡会员数
+   7)、沉睡会员唤醒数占比： 沉睡会员唤醒数/会员总数
+*/
+
+SET @yearmonth = "2018-02-01";
+
+SELECT
+ @yearmonth AS 截止时间点,
+ tt.`客户总数`,
+ tt.`活跃客户数`,
+ 100*ROUND(tt.`活跃客户数`/tt.`客户总数`,3) AS 活跃用户数占比,
+ tt.会员总数,
+ tt.沉默唤醒会员数,
+ 100*ROUND(tt.`沉默唤醒会员数`/tt.`会员总数`,3) AS 沉默唤醒会员数占比
+FROM
+(SELECT
+ SUM(CASE WHEN tt.`用户类型` = "总客户数" THEN tt.`用户数` ELSE 0 END) AS 客户总数,
+ SUM(CASE WHEN tt.`用户类型` = "活跃用户" THEN tt.`用户数` ELSE 0 END) AS 活跃客户数,
+ SUM(CASE WHEN tt.`用户类型` = "总会员数" THEN tt.`用户数` ELSE 0 END) AS 会员总数,
+ SUM(CASE WHEN tt.`用户类型` = "沉默唤醒" THEN tt.`用户数` ELSE 0 END) AS 沉默唤醒会员数,
+ SUM(CASE WHEN tt.`用户类型` = "潜在唤醒" THEN tt.`用户数` ELSE 0 END) AS 潜在唤醒会员数
+FROM
+(SELECT  -- 活跃用户分析-下单时间为2016年以来
+"总客户数" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.created
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.created,"%Y-%m-%d") BETWEEN "2016-01-01" AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt
+GROUP BY
+ tt.sys_customer_id)tt
+UNION   -- 活跃用户分析-下单时间为2016年以来    
+SELECT                   
+"活跃用户" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.created
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.created,"%Y-%m-%d") BETWEEN DATE_FORMAT(DATE_SUB(@yearmonth,INTERVAL 45 DAY),"%Y-%m-%d") AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt
+GROUP BY
+ tt.sys_customer_id)tt
+UNION  -- 沉睡唤醒用户分析-下单时间为2016年以来
+SELECT
+ tt.用户类型,
+ COUNT(DISTINCT tt.sys_customer_id) AS 用户数,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ CASE WHEN tt.time_interval>360 THEN "沉默唤醒"
+      WHEN tt.time_interval BETWEEN 46 AND 360 THEN "潜在唤醒"
+      ELSE "未定义用户" END AS 用户类型
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ DATEDIFF(NOW(),tt.pay_time) AS created_interval,
+ cc.支付次数,
+ cc.最近一次支付时间,
+ DATEDIFF(NOW(),cc.最近一次支付时间) AS time_interval
+FROM
+ crm_kd.kd_trade tt
+LEFT JOIN
+(SELECT  -- 用户最近一次购买时间
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 支付次数,
+ MIN(tt.pay_time) AS 最近一次支付时间
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ DATEDIFF(NOW(),cc.last_pay_time) AS time_interval,
+ DATEDIFF(NOW(),tt.pay_time) AS created_interval,
+ DATE_FORMAT(tt.created,"%Y-%m") AS yearmonth,
+ cc.last_order_time AS last_order_time,
+ cc.order_times
+FROM
+ crm_kd.kd_trade tt
+LEFT JOIN
+ crm_kd.kd_customer cc
+ON
+ tt.sys_customer_id = cc.sys_customer_id
+WHERE
+  DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN "2016-01-01" AND DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 30 DAY),"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+AND
+ cc.order_times>0
+ORDER BY
+ cc.order_times DESC)tt
+GROUP BY
+ tt.sys_customer_id)cc
+ON
+ tt.sys_customer_id=cc.sys_customer_id
+WHERE
+  DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN DATE_FORMAT(DATE_SUB(@yearmonth,INTERVAL 30 DAY),"%Y-%m-%d") AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.pay_time IS NOT NULL
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt)tt
+GROUP BY
+ tt.用户类型
+UNION
+SELECT  -- 活跃用户分析-下单时间为2016年以来
+"总会员数" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN "2016-01-01" AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+AND 
+ tt.pay_time IS NOT NULL
+)tt
+GROUP BY
+tt.sys_customer_id)tt
+  )tt
+   )tt
+
+
+
+
+/*  历史以来数据情况比例*/
+/*  历史以来数据情况比例*/
+
+SELECT
+ @yearmonth AS 截止时间点,
+ tt.`客户总数`,
+ tt.`活跃客户数`,
+ 100*ROUND(tt.`活跃客户数`/tt.`客户总数`,3) AS 活跃用户数占比,
+ tt.会员总数,
+ tt.沉默唤醒会员数,
+ 100*ROUND(tt.`沉默唤醒会员数`/tt.`会员总数`,3) AS 沉默唤醒会员数占比
+FROM
+(SELECT
+ SUM(CASE WHEN tt.`用户类型` = "总客户数" THEN tt.`用户数` ELSE 0 END) AS 客户总数,
+ SUM(CASE WHEN tt.`用户类型` = "活跃用户" THEN tt.`用户数` ELSE 0 END) AS 活跃客户数,
+ SUM(CASE WHEN tt.`用户类型` = "总会员数" THEN tt.`用户数` ELSE 0 END) AS 会员总数,
+ SUM(CASE WHEN tt.`用户类型` = "沉默唤醒" THEN tt.`用户数` ELSE 0 END) AS 沉默唤醒会员数,
+ SUM(CASE WHEN tt.`用户类型` = "潜在唤醒" THEN tt.`用户数` ELSE 0 END) AS 潜在唤醒会员数
+FROM
+(SELECT  -- 活跃用户分析-下单时间为2016年以来
+"总客户数" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.created
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.created,"%Y-%m-%d") BETWEEN "2011-01-01" AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt
+GROUP BY
+ tt.sys_customer_id)tt
+UNION   -- 活跃用户分析-下单时间为2016年以来    
+SELECT                   
+"活跃用户" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.created
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.created,"%Y-%m-%d") BETWEEN DATE_FORMAT(DATE_SUB(@yearmonth,INTERVAL 45 DAY),"%Y-%m-%d") AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt
+GROUP BY
+ tt.sys_customer_id)tt
+UNION  -- 沉睡唤醒用户分析-下单时间为2016年以来
+SELECT
+ tt.用户类型,
+ COUNT(DISTINCT tt.sys_customer_id) AS 用户数,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ CASE WHEN tt.time_interval>360 THEN "沉默唤醒"
+      WHEN tt.time_interval BETWEEN 46 AND 360 THEN "潜在唤醒"
+      ELSE "未定义用户" END AS 用户类型
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ DATEDIFF(NOW(),tt.pay_time) AS created_interval,
+ cc.支付次数,
+ cc.最近一次支付时间,
+ DATEDIFF(NOW(),cc.最近一次支付时间) AS time_interval
+FROM
+ crm_kd.kd_trade tt
+LEFT JOIN
+(SELECT  -- 用户最近一次购买时间
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 支付次数,
+ MIN(tt.pay_time) AS 最近一次支付时间
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time,
+ DATEDIFF(NOW(),cc.last_pay_time) AS time_interval,
+ DATEDIFF(NOW(),tt.pay_time) AS created_interval,
+ DATE_FORMAT(tt.created,"%Y-%m") AS yearmonth,
+ cc.last_order_time AS last_order_time,
+ cc.order_times
+FROM
+ crm_kd.kd_trade tt
+LEFT JOIN
+ crm_kd.kd_customer cc
+ON
+ tt.sys_customer_id = cc.sys_customer_id
+WHERE
+  DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN "2011-01-01" AND DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 30 DAY),"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+AND
+ cc.order_times>0
+ORDER BY
+ cc.order_times DESC)tt
+GROUP BY
+ tt.sys_customer_id)cc
+ON
+ tt.sys_customer_id=cc.sys_customer_id
+WHERE
+  DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN DATE_FORMAT(DATE_SUB(@yearmonth,INTERVAL 30 DAY),"%Y-%m-%d") AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.pay_time IS NOT NULL
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+)tt)tt
+GROUP BY
+ tt.用户类型
+UNION
+SELECT  -- 活跃用户分析-下单时间为2016年以来
+"总会员数" AS 用户类型,
+ COUNT(tt.sys_customer_id) AS 用户数,
+ SUM(tt.订单数) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ COUNT(DISTINCT tt.sys_trade_id) AS 订单数
+FROM
+(SELECT
+ tt.sys_customer_id,
+ tt.sys_trade_id,
+ tt.shop_id,
+ tt.pay_time
+FROM
+ crm_kd.kd_trade tt
+WHERE
+   DATE_FORMAT(tt.pay_time,"%Y-%m-%d") BETWEEN "2011-01-01" AND DATE_FORMAT(@yearmonth,"%Y-%m-%d")
+AND
+ tt.trade_status IN('TRADE_FINISHED','TRADE_BUYER_SIGNED','WAIT_BUYER_CONFIRM_GOODS','WAIT_SELLER_SEND_GOODS')
+AND
+ tt.shop_id IN('10004','10002','10006')
+AND
+ tt.seller_memo <> CONCAT("%","1药网","%") -- 非医药网用户
+AND
+ tt.seller_memo <> CONCAT("%","碧生源药品旗舰店用户","%") -- 人工导入碧生源药品旗舰店
+AND 
+ tt.pay_time IS NOT NULL
+)tt
+GROUP BY
+tt.sys_customer_id)tt
+  )tt
+   )tt
