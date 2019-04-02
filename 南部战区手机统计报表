@@ -1,0 +1,119 @@
+-- 创建基础客户信息表并插入
+DROP TABLE
+IF
+	EXISTS client_info;
+CREATE TABLE client_info (
+client_id VARCHAR ( 255 ) COMMENT '客户编码',
+client_name VARCHAR ( 255 ) COMMENT '客户名称',
+client_type VARCHAR ( 255 ) COMMENT '客户类型',
+client_province VARCHAR ( 255 ) COMMENT '客户所在省',
+client_address VARCHAR ( 255 ) COMMENT '客户详细地址',
+sale_manager VARCHAR ( 255 ) COMMENT '客户经理',
+sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
+sale_dis VARCHAR ( 255 ) COMMENT '销售最小区域',
+dis_filter VARCHAR ( 255 ) COMMENT '数据筛选条件' 
+) COMMENT = '客户信息表';
+INSERT INTO client_info ( client_id, client_name, client_type, client_province, client_address, sale_manager, sale_allpath, sale_dis, dis_filter ) SELECT
+客户编码,客户名称,客户类型,行政省,详细地址,客户经理,销售区域全路径,销售区域,广州地区 
+FROM
+	client_data_template 
+WHERE
+	length( 广州地区 ) > 4;
+ 
+ 
+ 
+-- 创建拜访信息记录表
+DROP TABLE
+IF
+	EXISTS visit_info;
+CREATE TABLE visit_log (
+visit_date DATE COMMENT '拜访日期',
+visit_plan_type VARCHAR ( 255 ) COMMENT '拜访类型',
+sale_manager VARCHAR ( 255 ) COMMENT '拜访人',
+sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
+sale_dis VARCHAR ( 255 ) COMMENT '销售最小区域',
+sale_plan VARCHAR ( 255 ) COMMENT '拜访计划',
+client_id VARCHAR ( 255 ) COMMENT '客户编号',
+client_name VARCHAR ( 255 ) COMMENT '客户名称',
+client_address VARCHAR ( 255 ) COMMENT '客户详细地址',
+client_type VARCHAR ( 255 ) COMMENT '客户类型',
+visit_status VARCHAR ( 255 ) COMMENT '拜访状态',
+visiton_distance VARCHAR ( 255 ) COMMENT '拜访抵达距离偏差',
+visitoff_distance VARCHAR ( 255 ) COMMENT '拜访离开距离偏差',
+visit_minute INT COMMENT '拜访持续时长' 
+) COMMENT '拜访记录表';
+INSERT INTO visit_log (
+visit_date,
+visit_plan_type,
+sale_manager,
+sale_allpath,
+sale_dis,
+sale_plan,
+client_id,
+client_name,
+client_address,
+client_type,
+visit_status,
+visiton_distance,
+visitoff_distance,
+visit_minute 
+) SELECT
+拜访日期,拜访流程,拜访人,销售区域全路径,销售区域,拜访流程,客户编码,拜访客户,客户位置,客户类型,拜访完成,`抵达登记偏差(米)`,`离开登记偏差(米)`,`拜访用时(分钟)` 
+FROM
+	visit_data_template 
+WHERE
+  拜访完成 = '已完成';
+	
+	
+	-- 创建南战区终端任务表记录
+	drop table if exists southtask_log
+	(
+	visit_date DATE COMMENT '拜访日期',
+visit_plan_type VARCHAR ( 255 ) COMMENT '拜访类型',
+sale_manager VARCHAR ( 255 ) COMMENT '拜访人',
+sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
+sale_dis VARCHAR ( 255 ) COMMENT '销售最小区域',
+sale_plan VARCHAR ( 255 ) COMMENT '拜访计划',
+client_id VARCHAR ( 255 ) COMMENT '客户编号',
+client_name VARCHAR ( 255 ) COMMENT '客户名称',
+client_address VARCHAR ( 255 ) COMMENT '客户详细地址',
+client_type VARCHAR ( 255 ) COMMENT '客户类型',
+visit_status VARCHAR ( 255 ) COMMENT '拜访状态',
+visiton_distance VARCHAR ( 255 ) COMMENT '拜访抵达距离偏差',
+visitoff_distance VARCHAR ( 255 ) COMMENT '拜访离开距离偏差',
+visit_minute INT COMMENT '拜访持续时长',
+display_duitou varchar(255) comment '堆头',
+display_huojia varchar(255) comment '货架',
+display_ph&pt varchar(255) comment '喷绘/PT版',
+display_pop varchar(255) comment '海报',
+display_other varchar(255) comment '其他',
+price_run25 FLOAT comment'常润茶25袋价格'，
+price_jing25 FLOAT comment'常菁茶25袋价格'，
+price_run40 FLOAT comment'常润茶40袋价格'，
+price_jing40 FLOAT comment'常菁茶40袋价格'，
+price_laili FLOAT comment'来利价格'，
+activity_status varchar(255) comment'是否参加活动'，
+activity_describe varchar(255) comment'活动描述'，
+activity_gifts varchar(255) comment'活动是否有赠品'，
+activity_giftsdescribe varchar(255) comment'赠品情况描述'，
+activity_other varchar(255) comment'活动其他情况描述'，
+	)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
