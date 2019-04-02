@@ -19,13 +19,11 @@ FROM
 	client_data_template 
 WHERE
 	length( 广州地区 ) > 4;
- 
- 
- 
+	
 -- 创建拜访信息记录表
 DROP TABLE
 IF
-	EXISTS visit_info;
+	EXISTS visit_log;
 CREATE TABLE visit_log (
 visit_date DATE COMMENT '拜访日期',
 visit_plan_type VARCHAR ( 255 ) COMMENT '拜访类型',
@@ -58,18 +56,31 @@ visiton_distance,
 visitoff_distance,
 visit_minute 
 ) SELECT
-拜访日期,拜访流程,拜访人,销售区域全路径,销售区域,拜访流程,客户编码,拜访客户,客户位置,客户类型,拜访完成,`抵达登记偏差(米)`,`离开登记偏差(米)`,`拜访用时(分钟)` 
+`拜访日期`,
+`拜访流程`,
+`拜访人`,
+`销售区域全路径`,
+`销售区域`,
+`计划类型`,
+`客户编码`,
+`拜访客户`,
+`客户位置`,
+`客户类型`,
+`拜访完成`,
+`抵达登记偏差(米)`,
+`离开登记偏差(米)`,
+`拜访用时(分钟)` 
 FROM
 	visit_data_template 
 WHERE
-  拜访完成 = '已完成';
+	拜访完成 = '已完成';
 	
-	
-	-- 创建南战区终端任务表记录
-	drop table if exists southtask_log
-	(
-	visit_date DATE COMMENT '拜访日期',
-visit_plan_type VARCHAR ( 255 ) COMMENT '拜访类型',
+-- 创建南战区终端任务表记录
+DROP TABLE
+IF
+	EXISTS southtask_log;
+CREATE TABLE southtask_log (
+visit_date DATETIME COMMENT '拜访日期',
 sale_manager VARCHAR ( 255 ) COMMENT '拜访人',
 sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
 sale_dis VARCHAR ( 255 ) COMMENT '销售最小区域',
@@ -82,38 +93,81 @@ visit_status VARCHAR ( 255 ) COMMENT '拜访状态',
 visiton_distance VARCHAR ( 255 ) COMMENT '拜访抵达距离偏差',
 visitoff_distance VARCHAR ( 255 ) COMMENT '拜访离开距离偏差',
 visit_minute INT COMMENT '拜访持续时长',
-display_duitou varchar(255) comment '堆头',
-display_huojia varchar(255) comment '货架',
-display_ph&pt varchar(255) comment '喷绘/PT版',
-display_pop varchar(255) comment '海报',
-display_other varchar(255) comment '其他',
-price_run25 FLOAT comment'常润茶25袋价格'，
-price_jing25 FLOAT comment'常菁茶25袋价格'，
-price_run40 FLOAT comment'常润茶40袋价格'，
-price_jing40 FLOAT comment'常菁茶40袋价格'，
-price_laili FLOAT comment'来利价格'，
-activity_status varchar(255) comment'是否参加活动'，
-activity_describe varchar(255) comment'活动描述'，
-activity_gifts varchar(255) comment'活动是否有赠品'，
-activity_giftsdescribe varchar(255) comment'赠品情况描述'，
-activity_other varchar(255) comment'活动其他情况描述'，
-	)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+display_duitou VARCHAR ( 255 ) COMMENT '堆头',
+display_huojia VARCHAR ( 255 ) COMMENT '货架',
+display_ph_pt VARCHAR ( 255 ) COMMENT '喷绘/PT版',
+display_pop VARCHAR ( 255 ) COMMENT '海报',
+display_other VARCHAR ( 255 ) COMMENT '其他',
+price_run25 varchar(255) COMMENT '常润茶25袋价格',
+price_jing25 varchar(255) COMMENT '常菁茶25袋价格',
+price_run40 varchar(255) COMMENT '常润茶40袋价格',
+price_jing40 varchar(255) COMMENT '常菁茶40袋价格',
+price_laili varchar(255) COMMENT '来利价格',
+activity_status VARCHAR ( 255 ) COMMENT '是否参加活动',
+activity_describe VARCHAR ( 255 ) COMMENT '活动描述',
+activity_gifts VARCHAR ( 255 ) COMMENT '活动是否有赠品',
+activity_giftsdescribe VARCHAR ( 255 ) COMMENT '赠品情况描述',
+other_info VARCHAR ( 255 ) COMMENT '其他情况描述' 
+) COMMENT = '南战区终端任务表';
+INSERT INTO southtask_log (
+visit_date,
+sale_manager,
+sale_allpath,
+sale_dis,
+sale_plan,
+client_id,
+client_name,
+client_address,
+client_type,
+visit_status,
+visiton_distance,
+visitoff_distance,
+visit_minute,
+display_duitou,
+display_huojia,
+display_ph_pt,
+display_pop,
+display_other,
+price_run25,
+price_jing25,
+price_run40,
+price_jing40,
+price_laili,
+activity_status,
+activity_describe,
+activity_gifts,
+activity_giftsdescribe,
+other_info 
+) SELECT
+`上报时间`,
+`拜访人`,
+`销售区域全路径`,
+`销售区域`,
+`计划类型`,
+`客户编码`,
+`拜访客户`,
+`客户地址`,
+`客户类型`,
+`拜访完成`,
+tt.`抵达登记偏差（米）`,
+tt.`离开登记偏差（米）`,
+`拜访用时(分钟)`,
+tt.陈列,
+tt.`Unnamed: 12`,
+tt.`Unnamed: 13`,
+tt.`Unnamed: 14`,
+tt.`Unnamed: 15`,
+tt.零售价,
+tt.`Unnamed: 17`,
+tt.`Unnamed: 18`,
+tt.`Unnamed: 19`,
+tt.`Unnamed: 20`,
+tt.活动,
+tt.`Unnamed: 22`,
+tt.`Unnamed: 23`,
+tt.`Unnamed: 24`,
+tt.其他说明 
+FROM
+	termtask_temp_template tt 
+WHERE
+	拜访完成 = '已完成';
