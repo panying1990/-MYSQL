@@ -88,12 +88,15 @@ display_ph&pt varchar(255) comment '喷绘/PT版',
 display_pop varchar(255) comment '海报',
 display_other varchar(255) comment '其他',
 price_run25 FLOAT comment'常润茶25袋价格'，
-price_jing25 FLOAT comment'常润茶25袋价格'，
-price_run40 FLOAT comment'常润茶25袋价格'，
-price_jing40 FLOAT comment'常润茶25袋价格'，
-price_run25 FLOAT comment'常润茶25袋价格'，
-
-
+price_jing25 FLOAT comment'常菁茶25袋价格'，
+price_run40 FLOAT comment'常润茶40袋价格'，
+price_jing40 FLOAT comment'常菁茶40袋价格'，
+price_laili FLOAT comment'来利价格'，
+activity_status varchar(255) comment'是否参加活动'，
+activity_describe varchar(255) comment'活动描述'，
+activity_gifts varchar(255) comment'活动是否有赠品'，
+activity_giftsdescribe varchar(255) comment'赠品情况描述'，
+activity_other varchar(255) comment'活动其他情况描述'，
 	)
 
 
