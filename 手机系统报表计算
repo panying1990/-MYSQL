@@ -1,0 +1,215 @@
+-- 创建基础人员拜访情况表
+DROP TABLE
+IF
+	EXISTS staff_visit_client;
+CREATE TABLE staff_visit_client (
+sale_manager VARCHAR ( 255 ) COMMENT '客户经理 数据表最小颗粒度之一',
+sale_dis VARCHAR ( 255 ) COMMENT '员工负责的销售区域 数据表最小颗粒度之一',
+sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
+client_name varchar(255) comment '客户名称',
+client_type varchar(255) comment '客户类型',
+sale_managers_visit int COMMENT '客户拜访次数',
+clientvisit_distance_5min int COMMENT '终端拜访<5min次数',
+clientvisit_distance_1hour int COMMENT '终端拜访5min<<1h次数',
+clientvisit_distance_overhour int COMMENT '终端拜访>1h次数',
+display_chenlie_lasttime VARCHAR ( 255 ) COMMENT '堆头,货架不为空',
+display_ph_pt_lasttime VARCHAR ( 255 ) COMMENT '喷绘/PT版不为空',
+display_pop_lasttime VARCHAR ( 255 ) COMMENT '海报不为空',
+other_info_lasttime VARCHAR ( 255 ) COMMENT '其他情况描述,用于描述是否断货情况' 
+) COMMENT = '手机系统统计周报';
+INSERT INTO staff_visit_client (
+sale_manager,
+sale_dis,
+sale_allpath,
+client_name,
+client_type,
+sale_managers_visit,
+clientvisit_distance_5min,
+clientvisit_distance_1hour,
+clientvisit_distance_overhour,
+display_chenlie_lasttime,
+display_ph_pt_lasttime,
+display_pop_lasttime,
+other_info_lasttime);
+
+
+(select
+	a.sale_manager,
+	a.sale_dis,
+	a.client_id_count,
+	a.sale_managers_visit,
+	a.sale_managers_businessvisit,
+	a.sale_managers_termvisit,
+	a.clientvisit_distance_5min,
+	a.clientvisit_distance_1hour,
+	a.clientvisit_distance_overhour,
+	a.clientvisit_onetime,
+	a.clientvisit_twotimes,
+	a.clientvisit_threetimes,
+	a.display_chenlie_lasttime,
+	a.display_ph_pt_lasttime,
+	a.display_pop_lasttime,
+	a.other_info_lasttime,
+	case when h.姓名 is null then 'N' else 'Y' end as sale_duty_dis 
+from
+(SELECT
+	a.sale_manager,
+	a.sale_dis,
+	count(a.client_id) as client_id_count,
+	sum( a.sale_managers_visit ) AS sale_managers_visit,
+	sum( a.sale_managers_businessvisit ) AS sale_managers_businessvisit,
+	sum( a.sale_managers_termvisit ) AS sale_managers_termvisit,
+	sum( a.clientvisit_distance_5min ) AS clientvisit_distance_5min,
+	sum( a.clientvisit_distance_1hour ) AS clientvisit_distance_1hour,
+	sum( a.clientvisit_distance_overhour ) AS clientvisit_distance_overhour,
+	sum( a.clientvisit_onetime ) AS clientvisit_onetime,
+	sum( a.clientvisit_twotimes ) AS clientvisit_twotimes,
+	sum( a.clientvisit_threetimes ) AS clientvisit_threetimes,
+	sum( a.display_chenlie_lasttime ) AS display_chenlie_lasttime,
+	sum( a.display_ph_pt_lasttime ) AS display_ph_pt_lasttime,
+	sum( a.display_pop_lasttime ) AS display_pop_lasttime,
+	sum( a.other_info_lasttime ) AS other_info_lasttime 
+FROM
+	(
+SELECT
+	d.sale_manager,
+	d.sale_dis,
+	d.client_id,
+	d.client_type,
+	d.sale_managers_visit,
+	d.sale_managers_businessvisit,
+	d.sale_managers_termvisit,
+	d.clientvisit_distance_5min,
+	d.clientvisit_distance_1hour,
+	d.clientvisit_distance_overhour,
+	d.clientvisit_onetime,
+	d.clientvisit_twotimes,
+	d.clientvisit_threetimes,
+CASE
+	
+	WHEN g.display_chenlie_lasttime IS NULL THEN
+	0 ELSE g.display_chenlie_lasttime 
+	END AS display_chenlie_lasttime,
+CASE
+	
+	WHEN g.display_ph_pt_lasttime IS NULL THEN
+	0 ELSE g.display_ph_pt_lasttime 
+	END AS display_ph_pt_lasttime,
+CASE
+	
+	WHEN g.display_pop_lasttime IS NULL THEN
+	0 ELSE g.display_pop_lasttime 
+	END AS display_pop_lasttime,
+CASE
+	
+	WHEN g.other_info_lasttime IS NULL THEN
+	0 ELSE g.other_info_lasttime 
+	END AS other_info_lasttime 
+FROM
+	(
+SELECT
+	d.sale_manager,
+	d.sale_dis,
+	d.client_id,
+	d.client_type,
+	d.sale_managers_visit,
+CASE
+	
+	WHEN d.client_type REGEXP '[商总]' THEN
+	1 ELSE 0 
+	END AS sale_managers_businessvisit,
+CASE
+	
+	WHEN d.client_type REGEXP '[^商总]' THEN
+	1 ELSE 0 
+	END AS sale_managers_termvisit,
+	d.clientvisit_distance_5min,
+	d.clientvisit_distance_1hour,
+	d.clientvisit_distance_overhour,
+CASE
+	
+	WHEN d.sale_managers_visit = 1 THEN
+	1 ELSE 0 
+	END AS clientvisit_onetime,
+CASE
+	
+	WHEN d.sale_managers_visit = 2 THEN
+	1 ELSE 0 
+	END AS clientvisit_twotimes,
+CASE
+	
+	WHEN d.sale_managers_visit > 2 THEN
+	1 ELSE 0 
+	END AS clientvisit_threetimes 
+FROM
+	(
+SELECT
+	d.sale_manager,
+	d.sale_dis,
+	d.client_id,
+	d.client_type,
+	count( d.client_id ) AS sale_managers_visit,
+CASE
+	
+	WHEN d.visit_minute < 6 THEN 1 ELSE 0 END AS clientvisit_distance_5min, CASE WHEN d.visit_minute > 5 
+	AND d.visit_minute < 61 THEN 1 ELSE 0 END AS clientvisit_distance_1hour, CASE WHEN d.visit_minute > 60 THEN
+	1 ELSE 0 
+	END AS clientvisit_distance_overhour 
+FROM
+	visit_log d 
+GROUP BY
+	d.sale_manager,
+	d.sale_dis,
+	d.client_id,
+	d.client_type 
+	) d 
+GROUP BY
+	d.sale_manager,
+	d.sale_dis,
+	d.client_id,
+	d.client_type 
+	) d -- 拜访数据汇总
+	LEFT JOIN (
+SELECT
+	g.sale_manager,
+	g.sale_dis,
+	g.client_id,
+	g.client_type,
+CASE
+	
+	WHEN g.display_huojia = '有' 
+	or g.display_duitou = '有' THEN
+	1 ELSE 0 
+	END AS display_chenlie_lasttime,
+CASE
+	
+	WHEN g.display_ph_pt = '有' THEN
+	1 ELSE 0 
+	END AS display_ph_pt_lasttime,
+CASE
+	
+	WHEN g.display_pop = '有' THEN
+	1 ELSE 0 
+	END AS display_pop_lasttime,
+CASE
+	
+	WHEN g.other_info REGEXP '断' THEN
+	1 ELSE 0 
+	END AS other_info_lasttime 
+FROM
+	southtask_log g 
+GROUP BY
+	g.sale_manager,
+	g.sale_dis,
+	g.client_id,
+	g.client_type 
+	) g ON CONCAT( d.sale_manager, d.sale_dis, d.client_id, d.client_type ) = CONCAT( g.sale_manager, g.sale_dis, g.client_id, g.client_type ) 
+	) a 
+GROUP BY
+	a.sale_manager,
+	a.sale_dis)
+	a
+	left join staff_info h on
+	concat(a.sale_manager,a.sale_dis)=concat(h.姓名,h.负责区域);
+ 
+ )
