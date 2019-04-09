@@ -171,3 +171,42 @@ FROM
 	termtask_temp_template tt 
 WHERE
 	拜访完成 = '已完成';
+	
+drop table if exists store_log;
+CREATE TABLE store_log(
+report_date DATETIME COMMENT '库存上报日期',
+sale_manager VARCHAR ( 255 ) COMMENT '上报人 即拜访人',
+sale_allpath VARCHAR ( 255 ) COMMENT '销售区域全路径',
+sale_dis VARCHAR ( 255 ) COMMENT '销售最小区域',
+client_id VARCHAR ( 255 ) COMMENT '客户编号',
+client_name VARCHAR ( 255 ) COMMENT '客户名称',
+client_type VARCHAR ( 255 ) COMMENT '客户类型',
+product_name VARCHAR ( 255 ) COMMENT '商品名称',
+prodstore_volume INT COMMENT '商品库存量' 
+) COMMENT = '库存明细表';
+insert into store_log(
+	report_date,
+  sale_manager,
+	sale_allpath,
+  sale_dis,
+  client_id,
+  client_name,
+  client_type,
+	product_name,
+	prodstore_volume)
+	select
+	 a.*
+	from(select 
+	 a.`上报日期` as report_date,
+	 a.上报人 as sale_manager,
+	 b.sale_allpath as sale_allpath,
+	 a.`客户区域` as sale_dis,
+	 a.`客户编码` as client_id,
+	 a.`客户` as client_name,
+	 a.客户类型 as client_type,
+	 a.`商品名称` as product_name,
+	 a.`库存数量` as prodstore_volume
+	from
+	store_temp_template a ,client_info b
+	where a.`客户编码`=b.client_id)a
+	where a.sale_allpath REGEXP '广州'
